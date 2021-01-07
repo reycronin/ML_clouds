@@ -36,6 +36,11 @@ class_names = np.array(sorted([item.name for item in data_dir.glob('*') if item.
 print(class_names)
 num_classes = len(class_names)
 
+def plot_ex_images(class_names, data_dir):
+    for class_n in class_names:
+        files = Path.joinpath(data_dir, class_n)
+        random.choice(os.list(
+
 
 val_size = int(image_count * 0.2)
 train_ds = list_ds.skip(val_size)
