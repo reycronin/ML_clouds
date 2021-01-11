@@ -1,4 +1,6 @@
+import time
 import numpy as np
+from loguru import logger
 from tensorflow.keras import layers
 import matplotlib.pyplot as plt
 import os
@@ -42,8 +44,8 @@ train_ds = list_ds.skip(val_size)
 
 val_ds = list_ds.take(val_size)
 
-print(tf.data.experimental.cardinality(train_ds).np())
-print(tf.data.experimental.cardinality(val_ds).np())
+print(tf.data.experimental.cardinality(train_ds).numpy())
+print(tf.data.experimental.cardinality(val_ds).numpy())
 
 def get_label(file_path):
   # convert the path to a list of path components
@@ -76,8 +78,8 @@ train_ds = train_ds.map(process_path, num_parallel_calls=AUTOTUNE)
 val_ds = val_ds.map(process_path, num_parallel_calls=AUTOTUNE)
 
 for image, label in train_ds.take(1):
-  print("Image shape: ", image.np().shape)
-  print("Label: ", label.np())
+  print("Image shape: ", image.numpy().shape)
+  print("Label: ", label.numpy())
 
 
 def configure_for_performance(ds):
@@ -96,7 +98,7 @@ image_batch, label_batch = next(iter(train_ds))
 plt.figure(figsize=(10, 10))
 for i in range(9):
   ax = plt.subplot(3, 3, i + 1)
-  plt.imshow(image_batch[i].np().astype("uint8"))
+  plt.imshow(image_batch[i].numpy().astype("uint8"))
   label = label_batch[i]
   plt.title(class_names[label])
   plt.axis("off")
@@ -130,7 +132,10 @@ model.compile(
   loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True),
   metrics=['accuracy'])
 
-num_epochs = 100
+num_epochs = 5 
+
+logger.info("Start training")
+search_start = time.time()
 
 history = model.fit(
             train_ds,
@@ -138,12 +143,19 @@ history = model.fit(
             epochs=num_epochs
           )
 
+
+search_end = time.time()
+elapsed_time = search_end - search_start
+logger.info(f"Elapsed time (s): {elapsed_time}")
+
+loss, accuracy = model.evaluate(x_test, y_test)
+logger.info(f"loss: {loss}, accuracy: {accuracy}")
+
 epochs_range = range(num_epochs)
 acc = history.history['accuracy']
 val_acc = history.history['val_accuracy']
 loss = history.history['loss']
 val_loss = history.history['val_loss']
-
 
 model.save("cloud_model_" + str(num_epochs) + ".h5")
 
