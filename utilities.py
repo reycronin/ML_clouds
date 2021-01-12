@@ -169,7 +169,7 @@ def fit_model(train_ds, val_ds, model, num_epochs):
 	logger.info(f"Elapsed time (s): {elapsed_time}")
 	return history
 
-def plot_results(history, num_epocs):
+def plot_results(history, num_epochs):
 	epochs_range = range(num_epochs)
 	acc = history.history['accuracy']
 	val_acc = history.history['val_accuracy']
