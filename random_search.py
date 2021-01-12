@@ -16,7 +16,17 @@ from keras.layers import Dense, Dropout, Flatten, BatchNormalization, Activation
 from keras.constraints import maxnorm
 from keras.layers.convolutional import Conv2D, MaxPooling2D
 from keras.utils import np_utils
-from keras.datasets import cifar10
+from kerastuner.tuners import (
+  BayesianOptimization,
+  Hyperband,
+  RandomSearch,
+)
+
+N_EPOCH_SEARCH = 40
+HYPERBAND_MAX_EPOCHS = 40
+MAX_TRIALS = 20
+EXECUTION_PER_TRIAL = 2
+BAYESIAN_NUM_INITIAL_POINTS = 1
 
 # fix random seed for reproducibility
 seed = 21
@@ -120,7 +130,7 @@ model.compile(
   loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True),
   metrics=['accuracy'])
 
-num_epochs = 75
+num_epochs = 1 
 
 logger.info("Start training")
 search_start = time.time()
