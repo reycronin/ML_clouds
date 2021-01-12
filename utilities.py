@@ -10,12 +10,12 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten, BatchNormalization, Activation
 from keras.layers.convolutional import Conv2D, MaxPooling2D
 
-global img_height
-global img_width
+global INPUT_SHAPE 
 global batch_size
-batch_size = 32
 img_height = 400
 img_width = 400
+INPUT_SHAPE = (img_height, img_width, 3)
+batch_size = 32
 
 def get_class_names(data_dir):
 	global class_names	
@@ -65,7 +65,7 @@ def decode_img(img):
 	# convert the compressed string to a 3D uint8 tensor
 	img = tf.image.decode_jpeg(img, channels=3)
 	# resize the image to the desired size
-	return tf.image.resize(img, [img_height, img_width])
+	return tf.image.resize(img, [INPUT_SHAPE[0], INPUT_SHAPE[1])
 
 def process_path(file_path):
 	label = get_label(file_path)
@@ -91,25 +91,35 @@ def configuration(train_ds, val_ds):
 	val_ds = configure_for_performance(val_ds, AUTOTUNE)
 	return train_ds, val_ds
 
-def base_model():
+def build_base_model():
 	model = tf.keras.Sequential([
-						layers.experimental.preprocessing.Rescaling(1./255),
-						layers.Conv2D(32, 3, activation='relu'),
-						layers.MaxPooling2D(),
-						layers.Conv2D(32, 3, activation='relu'),
-						layers.MaxPooling2D(),
-						layers.Conv2D(32, 3, activation='relu'),
-						layers.MaxPooling2D(),
-						layers.Flatten(), #3D feature map to 1D feature vectors
-						layers.Dense(128, activation='relu'),
-						layers.Dense(len(class_names))
-					])
+						layers.experimental.preprocessing.Rescaling(1./255)])
+	model.add(Conv2D(filters=32, 
+										kernel_size=3, 
+										activation='relu',
+										input_shape=INPUT_SHAPE))
+	model.add(MaxPooling2D(pool_size=2))
+	model.add(Conv2D(filters=32, 
+										kernel_size=3, 
+										activation='relu',
+										input_shape=INPUT_SHAPE))
+	model.add(MaxPooling2D(pool_size=2))
+	model.add(Conv2D(filters=32, 
+										kernel_size=3, 
+										activation='relu',
+										input_shape=INPUT_SHAPE))
+	model.add(MaxPooling2D(pool_size=2))
+	model.add(Flatten()) #3D feature map to 1D feature vectors
+	model.add(Dense(units = 128, activation='relu')),
+	model.add(Dense(units = len(class_names)))
+
 	model.compile(
-	 optimizer='adam',
-	 loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True),
-	 metrics=['accuracy'])
+		optimizer='adam',
+		loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True),
+		metrics=['accuracy'])
 
 	return model
+
 
 
 
