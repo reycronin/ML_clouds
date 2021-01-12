@@ -7,6 +7,7 @@ from pathlib import Path
 from random import choice
 import matplotlib.image as mpimg
 import tensorflow as tf
+import keras
 from tensorflow.keras import layers
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten, BatchNormalization, Activation
@@ -154,6 +155,68 @@ def build_base_model_dropout():
 		loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True),
 		metrics=['accuracy'])
 
+	return model
+
+
+def build_hypermodel(hp):
+	model = tf.keras.Sequential([
+						layers.experimental.preprocessing.Rescaling(1./255)])
+	model.add(Conv2D(filters=32, 
+										kernel_size=3, 
+										activation='relu',
+										input_shape=INPUT_SHAPE))
+	model.add(MaxPooling2D(pool_size=2))
+	model.add(Dropout(rate=hp.Float('dropout_1',
+																	min_value=0.0,
+																	max_value=0.5,
+																	default=0.2,
+																	step=0.05)))
+	model.add(Conv2D(filters=hp.Choice('num_filters',
+																			values=[32,64],
+																			default=32), 
+										kernel_size=3, 
+										activation='relu',
+										input_shape=INPUT_SHAPE))
+	model.add(MaxPooling2D(pool_size=2))
+	model.add(Dropout(rate=hp.Float('dropout_2',
+																	min_value=0.0,
+																	max_value=0.5,
+																	default=0.2,
+																	step=0.05)))
+	model.add(Conv2D(filters=32, 
+										kernel_size=3, 
+										activation='relu',
+										input_shape=INPUT_SHAPE))
+	model.add(MaxPooling2D(pool_size=2))
+	model.add(Dropout(rate=hp.Float('dropout_3',
+																	min_value=0.0,
+																	max_value=0.5,
+																	default=0.2,
+																	step=0.05)))
+	model.add(Flatten()) #3D feature map to 1D feature vectors
+	model.add(Dense(units = hp.Int("units", 
+																	min_value=32, 
+																	max_value=512, 
+																	step=32, 
+																	default=128), 
+									activation=hp.Choice('dens_activation',
+																				values=['relu', 'tanh', 'sigmoid'],
+																				default='relu')))
+	model.add(Dropout(rate=hp.Float('dropout_4',
+																	min_value=0.0,
+																	max_value=0.5,
+																	default=0.2,
+																	step=0.05)))
+	model.add(Dense(units = len(class_names), activation='softmax'))
+
+	model.compile(
+		optimizer=keras.optimizers.Adam(hp.Float('learning_rate',
+																							min_value=1e-4,
+																							max_value=1e-2,
+																							sampling='LOG',
+																							default=1e-3)),
+																		loss='sparse_categorical_crossentropy',
+																		metrics=['accuracy'])
 	return model
 
 def fit_model(train_ds, val_ds, model, num_epochs):
