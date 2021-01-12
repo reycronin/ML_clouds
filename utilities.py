@@ -1,4 +1,6 @@
+import time
 import os
+from loguru import logger
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path 
@@ -65,7 +67,7 @@ def decode_img(img):
 	# convert the compressed string to a 3D uint8 tensor
 	img = tf.image.decode_jpeg(img, channels=3)
 	# resize the image to the desired size
-	return tf.image.resize(img, [INPUT_SHAPE[0], INPUT_SHAPE[1])
+	return tf.image.resize(img, [INPUT_SHAPE[0], INPUT_SHAPE[1]])
 
 def process_path(file_path):
 	label = get_label(file_path)
@@ -121,6 +123,78 @@ def build_base_model():
 	return model
 
 
+def build_base_model_dropout():
+	model = tf.keras.Sequential([
+						layers.experimental.preprocessing.Rescaling(1./255)])
+	model.add(Conv2D(filters=32, 
+										kernel_size=3, 
+										activation='relu',
+										input_shape=INPUT_SHAPE))
+	model.add(MaxPooling2D(pool_size=2))
+	model.add(Dropout(rate=0.2))
+	model.add(Conv2D(filters=32, 
+										kernel_size=3, 
+										activation='relu',
+										input_shape=INPUT_SHAPE))
+	model.add(MaxPooling2D(pool_size=2))
+	model.add(Dropout(rate=0.2))
+	model.add(Conv2D(filters=32, 
+										kernel_size=3, 
+										activation='relu',
+										input_shape=INPUT_SHAPE))
+	model.add(MaxPooling2D(pool_size=2))
+	model.add(Dropout(rate=0.2))
+	model.add(Flatten()) #3D feature map to 1D feature vectors
+	model.add(Dense(units = 128, activation='relu')),
+	model.add(Dropout(rate=0.2))
+	model.add(Dense(units = len(class_names), activation='softmax'))
+
+	model.compile(
+		optimizer='adam',
+		loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True),
+		metrics=['accuracy'])
+
+	return model
+
+def fit_model(train_ds, val_ds, model, num_epochs):
+	logger.info("Start training")
+	search_start = time.time()
+	history = model.fit(
+						 train_ds,
+						 validation_data=val_ds,
+						 epochs=num_epochs
+					 )
+	search_end = time.time()
+	elapsed_time = search_end - search_start
+	logger.info(f"Elapsed time (s): {elapsed_time}")
+	return history
+
+def plot_results(history, num_epocs):
+	epochs_range = range(num_epochs)
+	acc = history.history['accuracy']
+	val_acc = history.history['val_accuracy']
+	loss = history.history['loss']
+	val_loss = history.history['val_loss']
+
+	plt.figure(figsize=(15, 15))
+	plt.subplot(2, 2, 1)
+	plt.plot(epochs_range, acc, label='Training Accuracy')
+	plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+	plt.xlabel('epoch')
+	plt.ylabel('percentage')
+	plt.legend(loc='lower right')
+	plt.title('Training and Validation Accuracy')
+
+	plt.subplot(2, 2, 2)
+	plt.plot(epochs_range, loss, label='Training Loss')
+	plt.plot(epochs_range, val_loss, label='Validation Loss')
+	plt.xlabel('epoch')
+	plt.ylabel('percentage')
+	plt.legend(loc='upper right')
+	plt.title('Training and Validation Loss - Baseline')
+
+	plt.savefig('training_val_acc_loss' + str(num_epochs) + 'BASELINE.png')
+	plt.show()
 
 
 
