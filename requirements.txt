@@ -1,6 +1,5 @@
 numpy
 loguru
-tensorflow>=2.2
 matplotlib
 tensorflow_datasets
 pathlib

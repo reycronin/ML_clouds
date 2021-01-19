@@ -3,7 +3,7 @@ import os
 from loguru import logger
 import numpy as np
 import matplotlib.pyplot as plt
-from pathlib import Path 
+from pathlib import Path
 from random import choice
 import matplotlib.image as mpimg
 import tensorflow as tf
@@ -13,7 +13,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten, BatchNormalization, Activation
 from keras.layers.convolutional import Conv2D, MaxPooling2D
 
-global INPUT_SHAPE 
+global INPUT_SHAPE
 global batch_size
 img_height = 400
 img_width = 400
@@ -21,7 +21,7 @@ INPUT_SHAPE = (img_height, img_width, 3)
 batch_size = 32
 
 def get_class_names(data_dir):
-	global class_names	
+	global class_names
 	class_names = np.array(sorted([item.name for item in data_dir.glob('*')]))
 	num_classes = len(class_names)
 	print('with', num_classes, 'different classes\n', class_names, '\n')
@@ -32,7 +32,7 @@ def load_data(data_dir):
 	print('there are', image_count, 'images\n')
 	list_ds = tf.data.Dataset.list_files(str(data_dir/'*/*'), shuffle=True)
 	list_ds = list_ds.shuffle(image_count, reshuffle_each_iteration=True)
-	return list_ds, image_count 
+	return list_ds, image_count
 
 def allocate_data(list_ds, image_count):
 	# 20 percent of the data is allocated to the validation set
@@ -42,9 +42,9 @@ def allocate_data(list_ds, image_count):
 	print(tf.data.experimental.cardinality(train_ds).numpy(), 'images are used for training')
 	print(tf.data.experimental.cardinality(val_ds).numpy(), 'images are used for validation')
 	return train_ds, val_ds
-	
+
 def plot_ex_images(data_dir):
-	plt.figure(figsize=(10, 10))
+	plt.figure(figsize=(12, 12))
 	for num, class_n in enumerate(class_names):
 		files = Path.joinpath(data_dir, class_n).glob('*jpg')
 		ran_image = choice(list(files))
@@ -55,6 +55,66 @@ def plot_ex_images(data_dir):
 		ax.axes.xaxis.set_visible(False)
 		ax.axes.yaxis.set_visible(False)
 		plt.grid(True)
+
+def label_histogram(data_dir):
+    plt.figure(figsize=(10, 7.5))
+    indices = len(list(class_names))
+    file_count = []
+    for class_n in class_names:
+        files = Path.joinpath(data_dir, class_n).glob('*jpg')
+        file_count.append(len(list(files)))
+    plt.bar(list(class_names), file_count, color='seagreen')
+    plt.ylabel('number of images', fontsize=14)
+    plt.xlabel('label', fontsize=14)
+    plt.tight_layout()
+    plt.show()
+
+def info_table():
+    import plotly.graph_objects as go
+    import pandas as pd
+    df = pd.read_csv('descriptions.csv', sep='; ', engine='python')
+    df.style.set_properties(subset=['Symbol'], **{'width': '200px'})
+    fig = go.Figure(data=[go.Table(
+        header=dict(values=list(df.columns),
+                    fill_color='lavender',
+                    align='left'),
+        cells=dict(values=[df.Symbol, df.Full_Name, df.Description],
+                   fill_color='lavenderblush',
+                   align='left'))
+    ])
+    fig.show()
+
+
+def compare_yourself(data_dir, current_score):
+    plt.figure(figsize=(12, 12))
+    class_n = choice(list(class_names))
+    print(class_n)
+    files = Path.joinpath(data_dir, class_n).glob('*jpg')
+    ran_image = choice(list(files))
+    image = mpimg.imread(ran_image)
+    plt.imshow(image)
+    plt.title('which class does this image belong to?')
+    plt.show()
+    guess = input('define the class: ')
+    current_score[1] += 1
+    if guess == class_n:
+        print('CORRECT!')
+        current_score[0] += 1
+    else:
+        print('not quite')
+        print('correct answer: ', class_n)
+    print('your current score is: ', current_score[0]/current_score[1])
+    return(current_score)
+
+
+def label_histogram(data_dir):
+    plt.figure(figsize=(10, 7.5))
+    indices = len(list(class_names))
+    file_count = []
+    for class_n in class_names:
+        files = Path.joinpath(data_dir, class_n).glob('*jpg')
+        file_count.append(len(list(files)))
+    plt.bar(list(class_names), file_count, color='seagreen')
 
 def get_label(file_path):
 	# convert the path to a list of path components
@@ -97,18 +157,18 @@ def configuration(train_ds, val_ds):
 def build_base_model():
 	model = tf.keras.Sequential([
 						layers.experimental.preprocessing.Rescaling(1./255)])
-	model.add(Conv2D(filters=32, 
-										kernel_size=3, 
+	model.add(Conv2D(filters=32,
+										kernel_size=3,
 										activation='relu',
 										input_shape=INPUT_SHAPE))
 	model.add(MaxPooling2D(pool_size=2))
-	model.add(Conv2D(filters=32, 
-										kernel_size=3, 
+	model.add(Conv2D(filters=32,
+										kernel_size=3,
 										activation='relu',
 										input_shape=INPUT_SHAPE))
 	model.add(MaxPooling2D(pool_size=2))
-	model.add(Conv2D(filters=32, 
-										kernel_size=3, 
+	model.add(Conv2D(filters=32,
+										kernel_size=3,
 										activation='relu',
 										input_shape=INPUT_SHAPE))
 	model.add(MaxPooling2D(pool_size=2))
@@ -127,20 +187,20 @@ def build_base_model():
 def build_base_model_dropout():
 	model = tf.keras.Sequential([
 						layers.experimental.preprocessing.Rescaling(1./255)])
-	model.add(Conv2D(filters=32, 
-										kernel_size=3, 
+	model.add(Conv2D(filters=32,
+										kernel_size=3,
 										activation='relu',
 										input_shape=INPUT_SHAPE))
 	model.add(MaxPooling2D(pool_size=2))
 	model.add(Dropout(rate=0.2))
-	model.add(Conv2D(filters=32, 
-										kernel_size=3, 
+	model.add(Conv2D(filters=32,
+										kernel_size=3,
 										activation='relu',
 										input_shape=INPUT_SHAPE))
 	model.add(MaxPooling2D(pool_size=2))
 	model.add(Dropout(rate=0.2))
-	model.add(Conv2D(filters=32, 
-										kernel_size=3, 
+	model.add(Conv2D(filters=32,
+										kernel_size=3,
 										activation='relu',
 										input_shape=INPUT_SHAPE))
 	model.add(MaxPooling2D(pool_size=2))
@@ -161,8 +221,8 @@ def build_base_model_dropout():
 def build_hypermodel(hp):
 	model = tf.keras.Sequential([
 						layers.experimental.preprocessing.Rescaling(1./255)])
-	model.add(Conv2D(filters=32, 
-										kernel_size=3, 
+	model.add(Conv2D(filters=32,
+										kernel_size=3,
 										activation='relu',
 										input_shape=INPUT_SHAPE))
 	model.add(MaxPooling2D(pool_size=2))
@@ -173,8 +233,8 @@ def build_hypermodel(hp):
 																	step=0.05)))
 	model.add(Conv2D(filters=hp.Choice('num_filters',
 																			values=[32,64],
-																			default=32), 
-										kernel_size=3, 
+																			default=32),
+										kernel_size=3,
 										activation='relu',
 										input_shape=INPUT_SHAPE))
 	model.add(MaxPooling2D(pool_size=2))
@@ -183,8 +243,8 @@ def build_hypermodel(hp):
 																	max_value=0.5,
 																	default=0.2,
 																	step=0.05)))
-	model.add(Conv2D(filters=32, 
-										kernel_size=3, 
+	model.add(Conv2D(filters=32,
+										kernel_size=3,
 										activation='relu',
 										input_shape=INPUT_SHAPE))
 	model.add(MaxPooling2D(pool_size=2))
@@ -194,11 +254,11 @@ def build_hypermodel(hp):
 																	default=0.2,
 																	step=0.05)))
 	model.add(Flatten()) #3D feature map to 1D feature vectors
-	model.add(Dense(units = hp.Int("units", 
-																	min_value=32, 
-																	max_value=512, 
-																	step=32, 
-																	default=128), 
+	model.add(Dense(units = hp.Int("units",
+																	min_value=32,
+																	max_value=512,
+																	step=32,
+																	default=128),
 									activation=hp.Choice('dens_activation',
 																				values=['relu', 'tanh', 'sigmoid'],
 																				default='relu')))
