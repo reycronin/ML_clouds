@@ -1,4 +1,6 @@
 import time
+import pandas as pd
+from keras.models import load_model
 import os
 from loguru import logger
 import numpy as np
@@ -12,6 +14,8 @@ from tensorflow.keras import layers
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten, BatchNormalization, Activation
 from keras.layers.convolutional import Conv2D, MaxPooling2D
+from tensorflow.keras.models import save_model, load_model
+
 
 global INPUT_SHAPE
 global batch_size
@@ -71,7 +75,6 @@ def label_histogram(data_dir):
 
 def info_table():
     import plotly.graph_objects as go
-    import pandas as pd
     df = pd.read_csv('descriptions.csv', sep='; ', engine='python')
     df.style.set_properties(subset=['Symbol'], **{'width': '200px'})
     fig = go.Figure(data=[go.Table(
@@ -84,8 +87,20 @@ def info_table():
     ])
     fig.show()
 
+def model_prediction(model, image_path):
+    print(image_path)
+    image = tf.keras.preprocessing.image.load_img(image_path)
+    input_arr = keras.preprocessing.image.img_to_array(image)
+    input_arr = np.array([input_arr])  # Convert single image to a batch.
+    predictions = model.predict(input_arr)
+    model_predict_num = np.argmax(predictions[0])
+    df = pd.read_csv('descriptions.csv', sep='; ', engine='python')
+    model_predict = df.iloc[[model_predict_num]]['Symbol']
+    model_predict = model_predict.to_string(index=False)
+    print('The model predicts that these clouds are:', model_predict)
+    return model_predict
 
-def compare_yourself(data_dir, current_score):
+def compare_yourself(data_dir, current_score, model):
     plt.figure(figsize=(12, 12))
     class_n = choice(list(class_names))
     print(class_n)
@@ -97,13 +112,16 @@ def compare_yourself(data_dir, current_score):
     plt.show()
     guess = input('define the class: ')
     current_score[1] += 1
-    if guess == class_n:
+
+    if guess.lower() == class_n.lower():
         print('CORRECT!')
         current_score[0] += 1
     else:
         print('not quite')
         print('correct answer: ', class_n)
+    model_predict = model_prediction(model, ran_image)
     print('your current score is: ', current_score[0]/current_score[1])
+
     return(current_score)
 
 
@@ -281,19 +299,33 @@ def build_hypermodel(hp):
                                                                         metrics=['accuracy'])
     return model
 
+
 def fit_model(train_ds, val_ds, model, num_epochs):
-    TF_CPP_MIN_VLOG_LEVEL=3.
+    save_model = input('would you like to save your model? [y/n]: ')
     logger.info("Start training")
     search_start = time.time()
     history = model.fit(
                          train_ds,
                          validation_data=val_ds,
-                         epochs=num_epochs
+                         epochs=num_epochs,
+                         verbose=0
                      )
     search_end = time.time()
     elapsed_time = search_end - search_start
     logger.info(f"Elapsed time (s): {elapsed_time}")
-    return history
+    if save_model.lower() == 'y' or save_model.lower() == 'yes':
+        save_model(model, 'cloud_model_' + str(num_epochs), overwrite=True, include_optimizer=True)
+    return history, model
+
+def load_existing_model():
+    use = input('would you like to load a saved model? [y/n] ')
+    if use.lower() == 'y' or use.lower() == 'yes':
+        model_dir = input('input the name of the model directory: ')
+        loaded_model = load_model(model_dir, custom_objects=None, compile=False)
+        print('using the ' + model_dir + ' model')
+        return(loaded_model)
+    else:
+        print('using existing model')
 
 def plot_results(history, num_epochs):
     epochs_range = range(num_epochs)
@@ -321,6 +353,5 @@ def plot_results(history, num_epochs):
 
     plt.savefig('training_val_acc_loss' + str(num_epochs) + 'BASELINE.png')
     plt.show()
-
 
 
