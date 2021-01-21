@@ -1,12 +1,12 @@
 Symbol; Full_Name; Description
-Ac; Altocumulus; mid-level, mid-sized, one part darker than the other
-As; Altostratus; gray/blue-gray, usually cover entire sky
-Cb; Cumulonimbus; vertical growth - thunder clouds
-Cc; Cirrocumulus; high altitude, small rounded puffs, often in rows
-Ci; Cirrus; high altitude, made of ice crystal, long, thin, wispy
-Cs; Cirrostratus; high altitude, thin, sheet-like with wide coverage 
-Ct; Contrails; created by jet aircraft at high altitude
-Cu; Cumulus; vertical growth, puffy white to light gray
-Ns; Nimbostratus; low altitude, dark gray with ragged bases, associated with rain
-Sc; Stratocumulus; low altitude, lumpy and gray, often spread out or in rows
-St; Stratus; low altitude, gray with wide coverage, fog that doesn't reach ground
+Ac; Altocumulus; mid-level, often one part darker than the other, mid-sized rounded masses, rolls... partly fibrous
+As; Altostratus; gray/blue-gray, fibrous or uniform, usually cover entire sky, no halo phenomena
+Cb; Cumulonimbus; vertical growth, upper portion usually smooth, or fibrous or straited, nearly always flattened (anvil), base is very dark with low ragged clouds - thunder clouds
+Cc; Cirrocumulus; high alt, thin, white patch, sheet or layer without shading, composed of very small elements rounded puffs, grains, ripples... often arranged
+Ci; Cirrus; high alt, white, fibrous, delicate, long, thin, wispy
+Cs; Cirrostratus; high alt, transparent, white-ish cloud veil of fibrous or smooth appearance with wide coverage, associated with halo phenomena
+Ct; Contrails; created by jet aircraft at high alt
+Cu; Cumulus; vertical growth, sharp outlines, puffy bright white top with gray horizontal bases
+Ns; Nimbostratus; low alt, dark gray with ragged bases, associated with rain, completely blots out sun
+Sc; Stratocumulus; low alt, lumpy and gray/white-ish, sheet or layer of cloud with tessellations, rounded masses, rolls, non-fibrous, often spread out or in rows
+St; Stratus; low alt, gray with wide coverage, fairly uniform base, fog that doesn't reach ground, assocaited with drizzle
