@@ -88,7 +88,6 @@ def info_table():
     fig.show()
 
 def model_prediction(model, image_path):
-    print(image_path)
     image = tf.keras.preprocessing.image.load_img(image_path)
     input_arr = keras.preprocessing.image.img_to_array(image)
     input_arr = np.array([input_arr])  # Convert single image to a batch.
@@ -121,9 +120,7 @@ def compare_yourself(data_dir, current_score, model):
         print('correct answer: ', class_n)
     model_predict = model_prediction(model, ran_image)
     print('your current score is: ', current_score[0]/current_score[1])
-
     return(current_score)
-
 
 def label_histogram(data_dir):
     plt.figure(figsize=(10, 7.5))
@@ -169,39 +166,9 @@ def configuration(train_ds, val_ds):
     AUTOTUNE = tf.data.experimental.AUTOTUNE
     train_ds = train_ds.map(process_path, num_parallel_calls=AUTOTUNE)
     val_ds = val_ds.map(process_path, num_parallel_calls=AUTOTUNE)
-
     train_ds = configure_for_performance(train_ds, AUTOTUNE)
     val_ds = configure_for_performance(val_ds, AUTOTUNE)
     return train_ds, val_ds
-
-def build_base_model():
-    model = tf.keras.Sequential([
-                        layers.experimental.preprocessing.Rescaling(1./255)])
-    model.add(Conv2D(filters=32,
-                                        kernel_size=3,
-                                        activation='relu',
-                                        input_shape=INPUT_SHAPE))
-    model.add(MaxPooling2D(pool_size=2))
-    model.add(Conv2D(filters=32,
-                                        kernel_size=3,
-                                        activation='relu',
-                                        input_shape=INPUT_SHAPE))
-    model.add(MaxPooling2D(pool_size=2))
-    model.add(Conv2D(filters=32,
-                                        kernel_size=3,
-                                        activation='relu',
-                                        input_shape=INPUT_SHAPE))
-    model.add(MaxPooling2D(pool_size=2))
-    model.add(Flatten()) #3D feature map to 1D feature vectors
-    model.add(Dense(units = 128, activation='relu')),
-    model.add(Dense(units = len(class_names)))
-
-    model.compile(
-        optimizer='adam',
-        loss=tf.losses.SparseCategoricalCrossentropy(from_logits=True),
-        metrics=['accuracy'])
-
-    return model
 
 
 def build_base_model_dropout():
@@ -238,70 +205,8 @@ def build_base_model_dropout():
     return model
 
 
-def build_hypermodel(hp):
-    model = tf.keras.Sequential([
-                        layers.experimental.preprocessing.Rescaling(1./255)])
-    model.add(Conv2D(filters=32,
-                                        kernel_size=3,
-                                        activation='relu',
-                                        input_shape=INPUT_SHAPE))
-    model.add(MaxPooling2D(pool_size=2))
-    model.add(Dropout(rate=hp.Float('dropout_1',
-                                                                    min_value=0.0,
-                                                                    max_value=0.5,
-                                                                    default=0.2,
-                                                                    step=0.05)))
-    model.add(Conv2D(filters=hp.Choice('num_filters',
-                                                                            values=[32,64],
-                                                                            default=32),
-                                        kernel_size=3,
-                                        activation='relu',
-                                        input_shape=INPUT_SHAPE))
-    model.add(MaxPooling2D(pool_size=2))
-    model.add(Dropout(rate=hp.Float('dropout_2',
-                                                                    min_value=0.0,
-                                                                    max_value=0.5,
-                                                                    default=0.2,
-                                                                    step=0.05)))
-    model.add(Conv2D(filters=32,
-                                        kernel_size=3,
-                                        activation='relu',
-                                        input_shape=INPUT_SHAPE))
-    model.add(MaxPooling2D(pool_size=2))
-    model.add(Dropout(rate=hp.Float('dropout_3',
-                                                                    min_value=0.0,
-                                                                    max_value=0.5,
-                                                                    default=0.2,
-                                                                    step=0.05)))
-    model.add(Flatten()) #3D feature map to 1D feature vectors
-    model.add(Dense(units = hp.Int("units",
-                                                                    min_value=32,
-                                                                    max_value=512,
-                                                                    step=32,
-                                                                    default=128),
-                                    activation=hp.Choice('dens_activation',
-                                                                                values=['relu', 'tanh', 'sigmoid'],
-                                                                                default='relu')))
-    model.add(Dropout(rate=hp.Float('dropout_4',
-                                                                    min_value=0.0,
-                                                                    max_value=0.5,
-                                                                    default=0.2,
-                                                                    step=0.05)))
-    model.add(Dense(units = len(class_names), activation='softmax'))
-
-    model.compile(
-        optimizer=keras.optimizers.Adam(hp.Float('learning_rate',
-                                                                                            min_value=1e-4,
-                                                                                            max_value=1e-2,
-                                                                                            sampling='LOG',
-                                                                                            default=1e-3)),
-                                                                        loss='sparse_categorical_crossentropy',
-                                                                        metrics=['accuracy'])
-    return model
-
-
 def fit_model(train_ds, val_ds, model, num_epochs):
-    save_model = input('would you like to save your model? [y/n]: ')
+    do_save = input('would you like to save your model? [y/n]: ')
     logger.info("Start training")
     search_start = time.time()
     history = model.fit(
@@ -313,7 +218,7 @@ def fit_model(train_ds, val_ds, model, num_epochs):
     search_end = time.time()
     elapsed_time = search_end - search_start
     logger.info(f"Elapsed time (s): {elapsed_time}")
-    if save_model.lower() == 'y' or save_model.lower() == 'yes':
+    if do_save.lower() == 'y' or do_save.lower() == 'yes':
         save_model(model, 'cloud_model_' + str(num_epochs), overwrite=True, include_optimizer=True)
     return history, model
 
