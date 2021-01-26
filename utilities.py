@@ -99,7 +99,7 @@ def model_prediction(model, image_path):
     print('The model predicts that these clouds are:', model_predict)
     return model_predict
 
-def compare_yourself(data_dir, current_score, model):
+def compare_yourself(data_dir, current_score, model_score, model):
     plt.figure(figsize=(12, 12))
     class_n = choice(list(class_names))
     print(class_n)
@@ -111,7 +111,7 @@ def compare_yourself(data_dir, current_score, model):
     plt.show()
     guess = input('define the class: ')
     current_score[1] += 1
-
+    model_score[1] += 1
     if guess.lower() == class_n.lower():
         print('CORRECT!')
         current_score[0] += 1
@@ -119,7 +119,11 @@ def compare_yourself(data_dir, current_score, model):
         print('not quite')
         print('correct answer: ', class_n)
     model_predict = model_prediction(model, ran_image)
+    if model_predict.lower() == class_n.lower():
+        model_score[0] += 1
+
     print('your current score is: ', current_score[0]/current_score[1])
+    print('the models score is: ', current_score[0]/current_score[1])
     return(current_score)
 
 def label_histogram(data_dir):
