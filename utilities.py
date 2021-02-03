@@ -1,4 +1,6 @@
 import time
+import tensorflow_datasets as tfds
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import pandas as pd
 from keras.models import load_model
 import os
@@ -121,10 +123,9 @@ def compare_yourself(data_dir, current_score, model_score, model):
     model_predict = model_prediction(model, ran_image)
     if model_predict.lower() == class_n.lower():
         model_score[0] += 1
-
-    print('your current score is: ', current_score[0]/current_score[1])
-    print('the models score is: ', current_score[0]/current_score[1])
-    return(current_score)
+    print('\nyour current score is: ', current_score[0]/current_score[1])
+    print('the models score is: ', model_score[0]/model_score[1])
+    return(current_score, model_score)
 
 def label_histogram(data_dir):
     plt.figure(figsize=(10, 7.5))
@@ -174,31 +175,64 @@ def configuration(train_ds, val_ds):
     val_ds = configure_for_performance(val_ds, AUTOTUNE)
     return train_ds, val_ds
 
+def data_aug(train_ds):
+    # the Sequential option groups linearly stacks the layers
+    # rescale images to be 0 to 1
 
-def build_base_model_dropout():
-    model = tf.keras.Sequential([
-                        layers.experimental.preprocessing.Rescaling(1./255)])
-    model.add(Conv2D(filters=32,
-                                        kernel_size=3,
-                                        activation='relu',
-                                        input_shape=INPUT_SHAPE))
+    IMG_SIZE = 400
+    resize_and_rescale = tf.keras.Sequential([
+      layers.experimental.preprocessing.Resizing(IMG_SIZE, IMG_SIZE),
+      layers.experimental.preprocessing.Rescaling(1./255)])
+
+    data_augmentation = tf.keras.Sequential([
+      layers.experimental.preprocessing.RandomFlip("horizontal"),
+      layers.experimental.preprocessing.RandomRotation(0.02),
+      layers.experimental.preprocessing.RandomZoom(0.1)])
+    model = tf.keras.Sequential([resize_and_rescale,
+                                data_augmentation])
+
+    plt.figure(figsize=(10,10))
+    for images, _ in train_ds.take(1):
+        ax = plt.subplot(3, 3, 1)
+        plt.imshow(images[0].numpy().astype("uint8"))
+        plt.axis("off")
+        plt.title('unaugmented image')        
+        for i in range(2, 10):
+            augmented_images = data_augmentation(images)
+            ax = plt.subplot(3, 3, i)
+            plt.imshow(augmented_images[0].numpy().astype("uint8"))
+            plt.axis("off")
+    return model
+
+def build_base_model_dropout(model):
+
+    # 2D convolution layer
+    model.add(Conv2D(filters=32, # number of output filters in the convolution
+                    kernel_size=3, # dimensions of the 2D convolution window
+                    activation='relu', # activation function
+                    input_shape=INPUT_SHAPE)) # shape of image input
+
     model.add(MaxPooling2D(pool_size=2))
     model.add(Dropout(rate=0.2))
     model.add(Conv2D(filters=32,
-                                        kernel_size=3,
-                                        activation='relu',
-                                        input_shape=INPUT_SHAPE))
+                    kernel_size=3,
+                    activation='relu',
+                    input_shape=INPUT_SHAPE))
     model.add(MaxPooling2D(pool_size=2))
     model.add(Dropout(rate=0.2))
     model.add(Conv2D(filters=32,
-                                        kernel_size=3,
-                                        activation='relu',
-                                        input_shape=INPUT_SHAPE))
+                    kernel_size=3,
+                    activation='relu',
+                    input_shape=INPUT_SHAPE))
     model.add(MaxPooling2D(pool_size=2))
     model.add(Dropout(rate=0.2))
-    model.add(Flatten()) #3D feature map to 1D feature vectors
+    # 400 x 400 -> 16,000 pixels
+    model.add(Flatten()) #2D feature map to 1D feature vectors
+    # densely connected neural layer with 128 neurons
     model.add(Dense(units = 128, activation='relu')),
     model.add(Dropout(rate=0.2))
+    # this returns nodes for scoring the classification of the current image
+    # into each of the classes
     model.add(Dense(units = len(class_names), activation='softmax'))
 
     model.compile(
@@ -209,12 +243,14 @@ def build_base_model_dropout():
     return model
 
 
+
+
 def fit_model(train_ds, val_ds, model, num_epochs):
+
     do_save = input('would you like to save your model? [y/n]: ')
     logger.info("Start training")
     search_start = time.time()
-    history = model.fit(
-                         train_ds,
+    history = model.fit(train_ds,
                          validation_data=val_ds,
                          epochs=num_epochs,
                          verbose=0
@@ -231,10 +267,20 @@ def load_existing_model():
     if use.lower() == 'y' or use.lower() == 'yes':
         model_dir = input('input the name of the model directory: ')
         loaded_model = load_model(model_dir, custom_objects=None, compile=False)
+
+        res = [int(i) for i in model_dir.split('_') if i.isdigit()]
+        image = mpimg.imread('training_val_acc_loss_' + str(res[0]) + '.png')
+        plt.figure(figsize=(25, 15))
+        plt.imshow(image)
+        plt.xticks([])
+        plt.yticks([])
+        plt.show()
+
         print('using the ' + model_dir + ' model')
         return(loaded_model)
     else:
         print('using existing model')
+        
 
 def plot_results(history, num_epochs):
     epochs_range = range(num_epochs)
@@ -260,7 +306,28 @@ def plot_results(history, num_epochs):
     plt.legend(loc='upper right')
     plt.title('Training and Validation Loss - Baseline')
 
-    plt.savefig('training_val_acc_loss' + str(num_epochs) + 'BASELINE.png')
+    plt.savefig('training_val_acc_loss_' + str(num_epochs) + '.png')
     plt.show()
 
+def show_bad_images(data_dir):
+    bad_img = ['/Ac/Ac-N036.jpg', '/Ac/Ac-N144.jpg', '/Ac/Ac-N198.jpg' , '/As/As-N054.jpg', '/As/As-N148.jpg', '/Cc/Cc-N079.jpg', '/Cc/Cc-N109.jpg', '/Ac/Ac-N171.jpg']
+    title = ['Ac taken from plane',
+            'Ac that looks more like Cb',
+            'Ac that doesnt really look like a cloud',
+            'As that is only a cloud edge',
+            'As that also has cumulus clouds in the picture',
+            'Cc that also has Ct in the picture',
+            'Cc picture that is also classified as Ac',
+            'Ac picture that is also classified as Cc']
+
+    plt.figure(figsize=(20, 12))
+    for idx, img in enumerate(bad_img):
+        ax = plt.subplot(2, 4, idx + 1) 
+        img_path = Path(str(data_dir) + img)
+        image = mpimg.imread(img_path)
+        plt.imshow(image)
+        plt.title(title[idx])
+        plt.xticks([])
+        plt.yticks([])
+    plt.show()
 
